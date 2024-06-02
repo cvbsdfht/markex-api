@@ -31,6 +31,7 @@ func main() {
 		Level:    cfg.Log.Level,
 		Format:   cfg.Log.Format,
 		ProdMode: cfg.App.ProdMode,
+		IsDisplayTime: cfg.App.IsDisplayTime,
 	})
 
 	// Connect mongodb

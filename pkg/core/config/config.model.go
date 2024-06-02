@@ -12,10 +12,11 @@ type Configuration struct {
 }
 
 type AppConfiguration struct {
-	Name     string
-	Port     int64
-	Env      string
-	ProdMode bool
+	Name          string
+	Port          int64
+	Env           string
+	ProdMode      bool
+	IsDisplayTime bool
 }
 
 type LogConfiguration struct {
