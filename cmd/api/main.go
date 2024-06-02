@@ -36,24 +36,14 @@ func main() {
 	// Connect mongodb
 	mongoClient := mongo.NewConnect(cfg.Mongo.Uri, log)
 	mongoDb := mongoClient.Database(cfg.Mongo.Database)
-	_ = mongoDb
 
 	// Connect redis
 	rdb := redis.NewConnect(cfg, log)
 
 	// Create fiber
 	app := fiber.New(fiber.Config{
-		JSONEncoder:   json.Marshal,
-		JSONDecoder:   json.Unmarshal,
-	})
-
-	app.Get("/health", func(c *fiber.Ctx) error {
-		return c.SendString("Healthy")
-	})
-
-	app.Get("/hello/:name", func(c *fiber.Ctx) error {
-		name := c.Params("name")
-		return c.SendString(fmt.Sprintf("Hello %v", name))
+		JSONEncoder: json.Marshal,
+		JSONDecoder: json.Unmarshal,
 	})
 
 	// Core
@@ -73,9 +63,9 @@ func main() {
 
 	// Service
 	userService := service.NewUserService(coreRegistry, repositoryRegistry)
-	_ = userService
 
 	// Route
+	routes.NewHealthRouteHandler(app).Init()
 	routes.NewUserRouteHandler(app, coreRegistry, userService).Init()
 
 	// Listen
