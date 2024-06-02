@@ -20,12 +20,6 @@ func NewConnect(uri string, log logger.Logger) *mongo.Client {
 		log.Error(err)
 		panic(err)
 	}
-	defer func() {
-		if err = client.Disconnect(context.TODO()); err != nil {
-			log.Error(err)
-			panic(err)
-		}
-	}()
 
 	// Send a ping to confirm a successful connection
 	if err := client.Database("admin").RunCommand(context.TODO(), bson.D{{Key: "ping", Value: 1}}).Err(); err != nil {

@@ -13,12 +13,12 @@ func NewConnect(cfg *config.Configuration, log logger.Logger) *redis.Client {
 	// Connect to server
 	rdb := redis.NewClient(&redis.Options{
 		Addr:     fmt.Sprintf("%v:%v", cfg.Redis.Host, cfg.Redis.Port),
-		Password: cfg.Redis.Password, // no password set
-		DB:       cfg.Redis.Database, // use default DB
+		Password: cfg.Redis.Password,
+		DB:       cfg.Redis.Database,
 	})
 
 	// Test connection
-	if _, err := rdb.Set("ping", "pong", 30*time.Second).Result(); err != nil {
+	if _, err := rdb.Set("ping", "pong", 10*time.Second).Result(); err != nil {
 		log.Error(err)
 		panic(err)
 	}
