@@ -5,22 +5,25 @@ import "github.com/gofiber/fiber/v2"
 type AppError struct {
 	Code    int
 	Message string
+	Err     error
 }
 
 func (e AppError) Error() string {
 	return e.Message
 }
 
-func ErrNoContent(message string) error {
+func ErrNoContent(err error) error {
 	return AppError{
 		Code:    fiber.StatusNoContent,
-		Message: message,
+		Message: "no content",
+		Err:     err,
 	}
 }
 
-func ErrUnexpected(message string) error {
+func ErrUnexpected(err error) error {
 	return AppError{
 		Code:    fiber.StatusInternalServerError,
-		Message: message,
+		Message: "unexpected",
+		Err:     err,
 	}
 }

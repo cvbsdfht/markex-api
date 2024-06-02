@@ -4,6 +4,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/markex-api/pkg/core"
 	"github.com/markex-api/pkg/modules/users/service"
+	"github.com/markex-api/pkg/tools/handler"
 )
 
 type userRouteHandler struct {
@@ -29,20 +30,14 @@ func (h *userRouteHandler) middleware(c *fiber.Ctx) error {
 }
 
 func (h *userRouteHandler) getUserList(c *fiber.Ctx) error {
-	users, err := h.userService.GetUserList()
-	if err != nil {
-		h.core.Logger.Error(err)
-		return c.SendStatus(400)
-	}
-	return c.JSON(users)
+	return handler.Handler(c, func() (interface{}, error) {
+		return h.userService.GetUserList()
+	})
 }
 
 func (h *userRouteHandler) getUserById(c *fiber.Ctx) error {
 	id := c.Params("id")
-	user, err := h.userService.GetUserById(id)
-	if err != nil {
-		h.core.Logger.Error(err)
-		return c.SendStatus(400)
-	}
-	return c.JSON(user)
+	return handler.Handler(c, func() (interface{}, error) {
+		return h.userService.GetUserById(id)
+	})
 }

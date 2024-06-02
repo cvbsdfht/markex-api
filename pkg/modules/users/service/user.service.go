@@ -4,10 +4,10 @@ import (
 	"errors"
 
 	"github.com/markex-api/pkg/core"
-	"github.com/markex-api/pkg/core/errs"
-	"github.com/markex-api/pkg/core/utils"
 	"github.com/markex-api/pkg/modules"
 	userModel "github.com/markex-api/pkg/modules/users/model"
+	"github.com/markex-api/pkg/tools/errs"
+	"github.com/markex-api/pkg/tools/utils"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -32,10 +32,10 @@ func (s *userService) GetUserList() (*[]userModel.User, error) {
 	if err != nil {
 		s.core.Logger.Error(err)
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, errs.ErrNoContent(err.Error())
+			return nil, errs.ErrNoContent(err)
 		}
 
-		return nil, errs.ErrUnexpected(err.Error())
+		return nil, errs.ErrUnexpected(err)
 	}
 
 	return users, nil
@@ -48,10 +48,10 @@ func (s *userService) GetUserById(id string) (*userModel.User, error) {
 	if err != nil {
 		s.core.Logger.Error(err)
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, errs.ErrNoContent(err.Error())
+			return nil, errs.ErrNoContent(err)
 		}
 
-		return nil, errs.ErrUnexpected(err.Error())
+		return nil, errs.ErrUnexpected(err)
 	}
 
 	return user, nil
