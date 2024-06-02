@@ -20,12 +20,12 @@ func NewUserRouteHandler(app *fiber.App, core *core.CoreRegistry, userService se
 func (h *userRouteHandler) Init() {
 	router := h.app
 
-	api := router.Group("/api/user", h.middleware)
+	api := router.Group("/api/user", h.validation)
 	api.Get("/", h.getUserList)
 	api.Get("/:id", h.getUserById)
 }
 
-func (h *userRouteHandler) middleware(c *fiber.Ctx) error {
+func (h *userRouteHandler) validation(c *fiber.Ctx) error {
 	return c.Next()
 }
 

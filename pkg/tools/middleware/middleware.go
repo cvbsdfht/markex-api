@@ -4,6 +4,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
+	"github.com/gofiber/fiber/v2/middleware/monitor"
 	"github.com/gofiber/fiber/v2/middleware/requestid"
 )
 
@@ -13,4 +14,6 @@ func MiddlewareRegistry(app *fiber.App) {
 		AllowMethods: "GET, POST, PUT, DELETE",
 	}))
 	app.Use(logger.New())
+
+	app.Get("/metrics", monitor.New())
 }
