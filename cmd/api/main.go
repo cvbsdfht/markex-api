@@ -15,6 +15,7 @@ import (
 	"github.com/markex-api/pkg/modules"
 	"github.com/markex-api/pkg/modules/users/repository"
 	"github.com/markex-api/pkg/modules/users/service"
+	"github.com/markex-api/pkg/tools/middleware"
 )
 
 func main() {
@@ -27,10 +28,10 @@ func main() {
 
 	// Load logger
 	log := logger.NewLogger(&logger.Options{
-		FilePath: cfg.Log.FilePath,
-		Level:    cfg.Log.Level,
-		Format:   cfg.Log.Format,
-		ProdMode: cfg.App.ProdMode,
+		FilePath:      cfg.Log.FilePath,
+		Level:         cfg.Log.Level,
+		Format:        cfg.Log.Format,
+		ProdMode:      cfg.App.ProdMode,
 		IsDisplayTime: cfg.App.IsDisplayTime,
 	})
 
@@ -46,6 +47,8 @@ func main() {
 		JSONEncoder: json.Marshal,
 		JSONDecoder: json.Unmarshal,
 	})
+
+	middleware.MiddlewareRegistry(app)
 
 	// Core
 	coreRegistry := &core.CoreRegistry{
