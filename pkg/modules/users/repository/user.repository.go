@@ -14,6 +14,7 @@ import (
 type IUserRepository interface {
 	GetAll() (*[]userModel.User, error)
 	GetById(id primitive.ObjectID) (*userModel.User, error)
+	Create(user *userModel.User) (interface{}, error)
 }
 
 // Adaptor
@@ -58,4 +59,16 @@ func (r *userRepository) GetById(id primitive.ObjectID) (*userModel.User, error)
 	}
 
 	return user, nil
+}
+
+func (r *userRepository) Create(user *userModel.User) (interface{}, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	result, err := r.UserCollection.InsertOne(ctx, user)
+	if err != nil {
+		return nil, err
+	}
+
+	return result.InsertedID, nil
 }

@@ -3,6 +3,7 @@ package routes
 import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/markex-api/pkg/core"
+	userModel "github.com/markex-api/pkg/modules/users/model"
 	"github.com/markex-api/pkg/modules/users/service"
 	"github.com/markex-api/pkg/tools/handler"
 )
@@ -23,6 +24,8 @@ func (h *userRouteHandler) Init() {
 	api := router.Group("/api/user", h.validation)
 	api.Get("/", h.getUserList)
 	api.Get("/:id", h.getUserById)
+
+	api.Post("/register", h.userRegister)
 }
 
 func (h *userRouteHandler) validation(c *fiber.Ctx) error {
@@ -39,5 +42,12 @@ func (h *userRouteHandler) getUserById(c *fiber.Ctx) error {
 	id := c.Params("id")
 	return handler.Handler(c, func() (interface{}, error) {
 		return h.userService.GetUserById(id)
+	})
+}
+
+func (h *userRouteHandler) userRegister(c *fiber.Ctx) error {
+	request := &userModel.User{}
+	return handler.HandlerWithBody(c, request, func() (interface{}, error) {
+		return h.userService.Create(request)
 	})
 }
