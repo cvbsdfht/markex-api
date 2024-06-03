@@ -42,12 +42,13 @@ func responseError(c *fiber.Ctx, err error) error {
 			Message: appError.Message,
 			Time:    time.Now(),
 			Request: fmt.Sprintf("uri: %v | x-request-id: %v", c.OriginalURL(), utils.InterfaceToString(c.Locals(requestid.ConfigDefault.ContextKey))),
+			Detail:  appError.Err.Error(),
 		}
 
 		return c.Status(appError.Code).JSON(appErrorResponse)
 	}
 
-	return c.JSON(err)
+	return c.Status(fiber.StatusBadRequest).JSON(err)
 }
 
 func responseSuccess(c *fiber.Ctx, payload interface{}) error {
