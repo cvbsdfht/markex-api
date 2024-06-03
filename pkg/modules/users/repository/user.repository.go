@@ -15,6 +15,7 @@ import (
 type IUserRepository interface {
 	GetAll() (*[]userModel.User, error)
 	GetById(id primitive.ObjectID) (*userModel.User, error)
+	GetByEmail(email string) (*userModel.User, error)
 	Upsert(user *userModel.User) (*userModel.User, error)
 }
 
@@ -54,6 +55,23 @@ func (r *userRepository) GetById(id primitive.ObjectID) (*userModel.User, error)
 
 	filter := bson.M{
 		"_id": id,
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	err := r.UserCollection.FindOne(ctx, filter).Decode(user)
+	if err != nil {
+		return nil, err
+	}
+
+	return user, nil
+}
+
+func (r *userRepository) GetByEmail(email string) (*userModel.User, error) {
+	user := &userModel.User{}
+
+	filter := bson.M{
+		"email": email,
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()

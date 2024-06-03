@@ -5,7 +5,9 @@ import (
 	"log"
 
 	"github.com/goccy/go-json"
+	jwtware "github.com/gofiber/contrib/jwt"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/helmet/v2"
 	"github.com/markex-api/cmd/api/routes"
 	"github.com/markex-api/pkg/core"
 	"github.com/markex-api/pkg/core/config"
@@ -69,7 +71,15 @@ func main() {
 	userService := service.NewUserService(coreRegistry, repositoryRegistry)
 
 	// Route
+	app.Use(helmet.New())
 	routes.NewHealthRouteHandler(app).Init()
+	routes.NewAuthenticationRouteHandler(app, coreRegistry, userService).Init()
+
+	// JWT Middleware
+	app.Use(jwtware.New(jwtware.Config{
+		SigningKey: jwtware.SigningKey{Key: []byte("secret")},
+	}))
+
 	routes.NewUserRouteHandler(app, coreRegistry, userService).Init()
 
 	// Listen

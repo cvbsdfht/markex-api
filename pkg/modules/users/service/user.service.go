@@ -5,6 +5,7 @@ import (
 	"time"
 
 	validation "github.com/go-ozzo/ozzo-validation"
+	"github.com/golang-jwt/jwt"
 	"github.com/markex-api/pkg/core"
 	"github.com/markex-api/pkg/modules"
 	userModel "github.com/markex-api/pkg/modules/users/model"
@@ -21,6 +22,7 @@ type IUserService interface {
 	Create(user *userModel.User) (*userModel.User, error)
 	Update(user *userModel.User) (*userModel.User, error)
 	Delete(id string) (*userModel.User, error)
+	Login(request *userModel.UserLoginRequest) (*userModel.UserLoginResponse, error)
 }
 
 // Adaptor
@@ -156,4 +158,47 @@ func (s *userService) Delete(id string) (*userModel.User, error) {
 	}
 
 	return result, nil
+}
+
+func (s *userService) Login(request *userModel.UserLoginRequest) (*userModel.UserLoginResponse, error) {
+	err := validation.ValidateStruct(request,
+		validation.Field(&request.Email, validation.Required),
+	)
+	if err != nil {
+		s.core.Logger.Error(err)
+		return nil, errs.ErrValidationFailed(err)
+	}
+
+	user, err := s.repo.UserRepository.GetByEmail(request.Email)
+	if err != nil {
+		s.core.Logger.Error(err)
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, errs.ErrNoContent(err)
+		}
+
+		return nil, errs.ErrUnexpected(err)
+	}
+
+	// Create the Claims
+	claims := jwt.MapClaims{
+		"userId": user.Id.Hex(),
+		"email":  user.Email,
+		"exp":    time.Now().Add(1 * time.Hour).Unix(),
+	}
+
+	// Create token
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
+	// Generate encoded token and send it as response.
+	t, err := token.SignedString([]byte("secret"))
+	if err != nil {
+		return nil, errs.ErrUnexpected(err)
+	}
+
+	response := &userModel.UserLoginResponse{
+		Email: user.Email,
+		Token: t,
+	}
+
+	return response, nil
 }

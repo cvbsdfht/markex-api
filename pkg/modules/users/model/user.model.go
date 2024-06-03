@@ -21,8 +21,11 @@ type User struct {
 
 var USER_STATUS = []string{"registered", "closing", "closed"}
 
-type UserResponse struct {
-	Id          string    `json:"id"`
-	Status      bool      `json:"status"`
-	UpdatedDate time.Time `json:"updatedDate"`
+type UserLoginRequest struct {
+	Email string
+}
+
+type UserLoginResponse struct {
+	Email string
+	Token string
 }
