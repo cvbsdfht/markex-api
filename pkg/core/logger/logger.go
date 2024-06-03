@@ -26,6 +26,7 @@ func NewLogger(option *Options) Logger {
 	if option.ProdMode {
 		encoderConfig := zap.NewProductionEncoderConfig()
 		encoderConfig.EncodeTime = zapcore.TimeEncoderOfLayout(time.RFC3339)
+		encoderConfig.StacktraceKey = ""
 		if !option.IsDisplayTime {
 			encoderConfig.TimeKey = "" // remove time
 		}
@@ -47,6 +48,7 @@ func NewLogger(option *Options) Logger {
 		encoderConfig := zap.NewDevelopmentEncoderConfig()
 		encoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
 		encoderConfig.EncodeTime = zapcore.TimeEncoderOfLayout(time.RFC3339)
+		encoderConfig.StacktraceKey = ""
 		if !option.IsDisplayTime {
 			encoderConfig.TimeKey = "" // remove time
 		}
