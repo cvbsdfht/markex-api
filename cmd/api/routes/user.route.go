@@ -25,7 +25,9 @@ func (h *userRouteHandler) Init() {
 	api.Get("/", h.getUserList)
 	api.Get("/:id", h.getUserById)
 
-	api.Post("/register", h.userRegister)
+	api.Post("/register", h.registerUser)
+	api.Post("/update", h.updateUser)
+	api.Put("/delete/:id", h.deleteUser)
 }
 
 func (h *userRouteHandler) validation(c *fiber.Ctx) error {
@@ -45,9 +47,23 @@ func (h *userRouteHandler) getUserById(c *fiber.Ctx) error {
 	})
 }
 
-func (h *userRouteHandler) userRegister(c *fiber.Ctx) error {
+func (h *userRouteHandler) registerUser(c *fiber.Ctx) error {
 	request := &userModel.User{}
 	return handler.HandlerWithBody(c, request, func() (interface{}, error) {
 		return h.userService.Create(request)
+	})
+}
+
+func (h *userRouteHandler) updateUser(c *fiber.Ctx) error {
+	request := &userModel.User{}
+	return handler.HandlerWithBody(c, request, func() (interface{}, error) {
+		return h.userService.Update(request)
+	})
+}
+
+func (h *userRouteHandler) deleteUser(c *fiber.Ctx) error {
+	id := c.Params("id")
+	return handler.Handler(c, func() (interface{}, error) {
+		return h.userService.Delete(id)
 	})
 }

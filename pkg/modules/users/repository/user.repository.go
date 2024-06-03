@@ -8,13 +8,14 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // Port
 type IUserRepository interface {
 	GetAll() (*[]userModel.User, error)
 	GetById(id primitive.ObjectID) (*userModel.User, error)
-	Create(user *userModel.User) (interface{}, error)
+	Upsert(user *userModel.User) (*userModel.User, error)
 }
 
 // Adaptor
@@ -30,7 +31,9 @@ func NewUserRepository(database *mongo.Database) IUserRepository {
 func (r *userRepository) GetAll() (*[]userModel.User, error) {
 	users := &[]userModel.User{}
 
-	filter := bson.M{}
+	filter := bson.M{
+		"status": "registered",
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -49,7 +52,9 @@ func (r *userRepository) GetAll() (*[]userModel.User, error) {
 func (r *userRepository) GetById(id primitive.ObjectID) (*userModel.User, error) {
 	user := &userModel.User{}
 
-	filter := bson.M{"_id": id}
+	filter := bson.M{
+		"_id": id,
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -61,14 +66,23 @@ func (r *userRepository) GetById(id primitive.ObjectID) (*userModel.User, error)
 	return user, nil
 }
 
-func (r *userRepository) Create(user *userModel.User) (interface{}, error) {
+func (r *userRepository) Upsert(user *userModel.User) (*userModel.User, error) {
+	filter := bson.M{
+		"_id":    user.Id,
+		"status": "registered",
+	}
+	update := bson.D{
+		{Key: "$set", Value: user},
+	}
+	option := options.FindOneAndUpdate().SetReturnDocument(options.After).SetUpsert(true)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	result, err := r.UserCollection.InsertOne(ctx, user)
+	result := &userModel.User{}
+	err := r.UserCollection.FindOneAndUpdate(ctx, filter, update, option).Decode(result)
 	if err != nil {
 		return nil, err
 	}
 
-	return result.InsertedID, nil
+	return result, nil
 }

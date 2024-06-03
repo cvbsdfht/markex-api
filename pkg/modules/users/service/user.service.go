@@ -18,7 +18,9 @@ import (
 type IUserService interface {
 	GetUserList() (*[]userModel.User, error)
 	GetUserById(id string) (*userModel.User, error)
-	Create(user *userModel.User) (*userModel.UserResponse, error)
+	Create(user *userModel.User) (*userModel.User, error)
+	Update(user *userModel.User) (*userModel.User, error)
+	Delete(id string) (*userModel.User, error)
 }
 
 // Adaptor
@@ -61,7 +63,7 @@ func (s *userService) GetUserById(id string) (*userModel.User, error) {
 	return user, nil
 }
 
-func (s *userService) Create(user *userModel.User) (*userModel.UserResponse, error) {
+func (s *userService) Create(user *userModel.User) (*userModel.User, error) {
 	err := validation.ValidateStruct(user,
 		validation.Field(&user.Email, validation.Required),
 	)
@@ -72,6 +74,7 @@ func (s *userService) Create(user *userModel.User) (*userModel.UserResponse, err
 
 	now := time.Now()
 	request := &userModel.User{
+		Id:          primitive.NewObjectID(),
 		Email:       user.Email,
 		Status:      "registered",
 		CreatedDate: now,
@@ -91,17 +94,66 @@ func (s *userService) Create(user *userModel.User) (*userModel.UserResponse, err
 		request.BirthDate = user.BirthDate
 	}
 
-	result, err := s.repo.UserRepository.Create(request)
+	result, err := s.repo.UserRepository.Upsert(request)
 	if err != nil {
 		s.core.Logger.Error(err)
 		return nil, errs.ErrNotAcceptable(err)
 	}
 
-	response := &userModel.UserResponse{
-		Id:          result.(primitive.ObjectID).Hex(),
-		Status:      true,
+	return result, nil
+}
+
+func (s *userService) Update(user *userModel.User) (*userModel.User, error) {
+	err := validation.ValidateStruct(user,
+		validation.Field(&user.Id, validation.Required),
+	)
+	if err != nil {
+		s.core.Logger.Error(err)
+		return nil, errs.ErrValidationFailed(err)
+	}
+
+	now := time.Now()
+	request := &userModel.User{
+		Id:          user.Id,
 		UpdatedDate: now,
 	}
 
-	return response, nil
+	if user.Firstname != "" {
+		request.Firstname = user.Firstname
+	}
+	if user.Lastname != "" {
+		request.Lastname = user.Lastname
+	}
+	if user.Tel != "" {
+		request.Tel = user.Tel
+	}
+	if user.BirthDate != nil {
+		request.BirthDate = user.BirthDate
+	}
+
+	result, err := s.repo.UserRepository.Upsert(request)
+	if err != nil {
+		s.core.Logger.Error(err)
+		return nil, errs.ErrNotAcceptable(err)
+	}
+
+	return result, nil
+}
+
+func (s *userService) Delete(id string) (*userModel.User, error) {
+	Oid := utils.ToObjectID(id)
+	now := time.Now()
+	request := &userModel.User{
+		Id:          Oid,
+		UpdatedDate: now,
+		Status:      "closing",
+	}
+
+	result, err := s.repo.UserRepository.Upsert(request)
+	if err != nil {
+		s.core.Logger.Error(err)
+		return nil, errs.ErrNotAcceptable(err)
+	}
+
+	return result, nil
 }
