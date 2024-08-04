@@ -10,6 +10,7 @@ import (
 	"github.com/markex-api/pkg/modules"
 	userModel "github.com/markex-api/pkg/modules/users/model"
 	"github.com/markex-api/pkg/tools/errs"
+	"github.com/markex-api/pkg/tools/utils"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -18,9 +19,9 @@ import (
 type IUserService interface {
 	GetUserList() (*userModel.UserListResponse, error)
 	GetUserById(id string) (*userModel.UserResponse, error)
-	Create(user *userModel.User) (*userModel.UserResponse, error)
-	Update(user *userModel.User) (*userModel.UserResponse, error)
-	Delete(id string) (*userModel.UserResponse, error)
+	Create(user *userModel.UserRequest) (*userModel.UserResponse, error)
+	Update(user *userModel.UserRequest) (*userModel.UserResponse, error)
+	Closing(id string) (*userModel.UserResponse, error)
 	Login(request *userModel.UserLoginRequest) (*userModel.UserLoginResponse, error)
 }
 
@@ -35,6 +36,7 @@ func NewUserService(c *core.CoreRegistry, r *modules.RepositoryRegistry) IUserSe
 }
 
 func (s *userService) GetUserList() (*userModel.UserListResponse, error) {
+	// get all users
 	users, err := s.repo.UserRepository.GetAll()
 	if err != nil {
 		s.core.Logger.Error(err)
@@ -52,13 +54,15 @@ func (s *userService) GetUserList() (*userModel.UserListResponse, error) {
 }
 
 func (s *userService) GetUserById(id string) (*userModel.UserResponse, error) {
-	Oid, err := primitive.ObjectIDFromHex(id)
+	// validate
+	oid, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		s.core.Logger.Error(err)
 		return nil, errs.ErrValidationFailed(err)
 	}
 
-	user, err := s.repo.UserRepository.GetById(Oid)
+	// get user by id
+	user, err := s.repo.UserRepository.GetById(oid)
 	if err != nil {
 		s.core.Logger.Error(err)
 		if errors.Is(err, mongo.ErrNoDocuments) {
@@ -74,38 +78,42 @@ func (s *userService) GetUserById(id string) (*userModel.UserResponse, error) {
 	}, nil
 }
 
-func (s *userService) Create(user *userModel.User) (*userModel.UserResponse, error) {
-	err := validation.ValidateStruct(user,
-		validation.Field(&user.Email, validation.Required),
+func (s *userService) Create(req *userModel.UserRequest) (*userModel.UserResponse, error) {
+	// validate
+	err := validation.ValidateStruct(req,
+		validation.Field(&req.Email, validation.Required),
 	)
 	if err != nil {
 		s.core.Logger.Error(err)
 		return nil, errs.ErrValidationFailed(err)
 	}
 
+	// build a user
 	now := time.Now()
-	request := &userModel.User{
+	user := &userModel.User{
 		Id:          primitive.NewObjectID(),
-		Email:       user.Email,
+		Email:       req.Email,
 		Status:      userModel.USER_STATUS_REGISTERED,
 		CreatedDate: now,
 		UpdatedDate: now,
 	}
 
-	if user.Firstname != "" {
-		request.Firstname = user.Firstname
+	if req.Firstname != "" {
+		user.Firstname = req.Firstname
 	}
-	if user.Lastname != "" {
-		request.Lastname = user.Lastname
+	if req.Lastname != "" {
+		user.Lastname = req.Lastname
 	}
-	if user.Tel != "" {
-		request.Tel = user.Tel
+	if req.Tel != "" {
+		user.Tel = req.Tel
 	}
-	if user.BirthDate != nil {
-		request.BirthDate = user.BirthDate
+	if req.BirthDate != "" {
+		birthDate := utils.StringToDateFormat(req.BirthDate, utils.FORMAT_DATETIME)
+		user.BirthDate = &birthDate
 	}
 
-	result, err := s.repo.UserRepository.Upsert(request)
+	// upsert user
+	result, err := s.repo.UserRepository.Upsert(user)
 	if err != nil {
 		s.core.Logger.Error(err)
 		return nil, errs.ErrNotAcceptable(err)
@@ -117,35 +125,44 @@ func (s *userService) Create(user *userModel.User) (*userModel.UserResponse, err
 	}, nil
 }
 
-func (s *userService) Update(user *userModel.User) (*userModel.UserResponse, error) {
-	err := validation.ValidateStruct(user,
-		validation.Field(&user.Id, validation.Required),
+func (s *userService) Update(req *userModel.UserRequest) (*userModel.UserResponse, error) {
+	// validate
+	err := validation.ValidateStruct(req,
+		validation.Field(&req.Id, validation.Required),
 	)
 	if err != nil {
 		s.core.Logger.Error(err)
 		return nil, errs.ErrValidationFailed(err)
 	}
 
-	now := time.Now()
-	request := &userModel.User{
-		Id:          user.Id,
-		UpdatedDate: now,
+	oid, err := primitive.ObjectIDFromHex(req.Id)
+	if err != nil {
+		s.core.Logger.Error(err)
+		return nil, errs.ErrValidationFailed(err)
 	}
 
-	if user.Firstname != "" {
-		request.Firstname = user.Firstname
-	}
-	if user.Lastname != "" {
-		request.Lastname = user.Lastname
-	}
-	if user.Tel != "" {
-		request.Tel = user.Tel
-	}
-	if user.BirthDate != nil {
-		request.BirthDate = user.BirthDate
+	// build update user
+	user := &userModel.User{
+		Id:          oid,
+		UpdatedDate: time.Now(),
 	}
 
-	result, err := s.repo.UserRepository.Upsert(request)
+	if req.Firstname != "" {
+		user.Firstname = req.Firstname
+	}
+	if req.Lastname != "" {
+		user.Lastname = req.Lastname
+	}
+	if req.Tel != "" {
+		user.Tel = req.Tel
+	}
+	if req.BirthDate != "" {
+		birthDate := utils.StringToDateFormat(req.BirthDate, utils.FORMAT_DATETIME)
+		user.BirthDate = &birthDate
+	}
+
+	// upsert user
+	result, err := s.repo.UserRepository.Upsert(user)
 	if err != nil {
 		s.core.Logger.Error(err)
 		return nil, errs.ErrNotAcceptable(err)
@@ -157,20 +174,23 @@ func (s *userService) Update(user *userModel.User) (*userModel.UserResponse, err
 	}, nil
 }
 
-func (s *userService) Delete(id string) (*userModel.UserResponse, error) {
-	Oid, err := primitive.ObjectIDFromHex(id)
+func (s *userService) Closing(id string) (*userModel.UserResponse, error) {
+	// validate
+	oid, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		s.core.Logger.Error(err)
 		return nil, errs.ErrValidationFailed(err)
 	}
 
-	request := &userModel.User{
-		Id:          Oid,
+	// build closing user
+	user := &userModel.User{
+		Id:          oid,
 		UpdatedDate: time.Now(),
 		Status:      userModel.USER_STATUS_CLOSING,
 	}
 
-	result, err := s.repo.UserRepository.Upsert(request)
+	// upsert user
+	result, err := s.repo.UserRepository.Upsert(user)
 	if err != nil {
 		s.core.Logger.Error(err)
 		return nil, errs.ErrNotAcceptable(err)

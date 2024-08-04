@@ -19,11 +19,14 @@ type User struct {
 	DeletedDate *time.Time         `json:"deletedDate,omitempty" bson:"deletedDate,omitempty"`
 }
 
-const (
-	USER_STATUS_REGISTERED = "registered"
-	USER_STATUS_CLOSING    = "closing"
-	USER_STATUS_CLOSED     = "closed"
-)
+type UserRequest struct {
+	Id        string `json:"id"`
+	Firstname string `json:"firstname"`
+	Lastname  string `json:"lastname"`
+	Email     string `json:"email"`
+	Tel       string `json:"tel"`
+	BirthDate string `json:"birthDate"`
+}
 
 type UserResponse struct {
 	Status bool  `json:"status"`
@@ -43,3 +46,9 @@ type UserLoginResponse struct {
 	Email string
 	Token string
 }
+
+const (
+	USER_STATUS_REGISTERED = "registered"
+	USER_STATUS_CLOSING    = "closing"
+	USER_STATUS_CLOSED     = "closed"
+)
