@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/go-playground/validator/v10"
+	"github.com/markex-api/pkg/tools/validation"
 	"github.com/goccy/go-json"
 	_ "github.com/gofiber/contrib/jwt"
 	"github.com/gofiber/fiber/v2"
@@ -50,7 +52,12 @@ func main() {
 		JSONDecoder: json.Unmarshal,
 	})
 
+	// Middleware
 	middleware.MiddlewareRegistry(app)
+
+	// Validator
+	validate := validator.New()
+	validation.ValidationRegistry(validate)
 
 	// Core
 	coreRegistry := &core.CoreRegistry{
@@ -68,7 +75,7 @@ func main() {
 	}
 
 	// Service
-	userService := service.NewUserService(coreRegistry, repositoryRegistry)
+	userService := service.NewUserService(coreRegistry, repositoryRegistry, validate)
 
 	// Route
 	app.Use(helmet.New())

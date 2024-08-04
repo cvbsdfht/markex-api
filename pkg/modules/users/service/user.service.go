@@ -4,7 +4,7 @@ import (
 	"errors"
 	"time"
 
-	validation "github.com/go-ozzo/ozzo-validation/v4"
+	"github.com/go-playground/validator/v10"
 	"github.com/golang-jwt/jwt"
 	"github.com/markex-api/pkg/core"
 	"github.com/markex-api/pkg/modules"
@@ -27,12 +27,17 @@ type IUserService interface {
 
 // Adaptor
 type userService struct {
-	core *core.CoreRegistry
-	repo *modules.RepositoryRegistry
+	core     *core.CoreRegistry
+	repo     *modules.RepositoryRegistry
+	validate *validator.Validate
 }
 
-func NewUserService(c *core.CoreRegistry, r *modules.RepositoryRegistry) IUserService {
-	return &userService{core: c, repo: r}
+func NewUserService(c *core.CoreRegistry, r *modules.RepositoryRegistry, v *validator.Validate) IUserService {
+	return &userService{
+		core:     c,
+		repo:     r,
+		validate: v,
+	}
 }
 
 func (s *userService) GetUserList() (*userModel.UserListResponse, error) {
@@ -55,13 +60,13 @@ func (s *userService) GetUserList() (*userModel.UserListResponse, error) {
 
 func (s *userService) GetUserById(id string) (*userModel.UserResponse, error) {
 	// validate
-	oid, err := primitive.ObjectIDFromHex(id)
-	if err != nil {
+	if err := s.validate.Var(id, "mongodb"); err != nil {
 		s.core.Logger.Error(err)
 		return nil, errs.ErrValidationFailed(err)
 	}
 
 	// get user by id
+	oid, _ := primitive.ObjectIDFromHex(id)
 	user, err := s.repo.UserRepository.GetById(oid)
 	if err != nil {
 		s.core.Logger.Error(err)
@@ -79,11 +84,8 @@ func (s *userService) GetUserById(id string) (*userModel.UserResponse, error) {
 }
 
 func (s *userService) Create(req *userModel.UserRequest) (*userModel.UserResponse, error) {
-	// validate
-	err := validation.ValidateStruct(req,
-		validation.Field(&req.Email, validation.Required),
-	)
-	if err != nil {
+	// vaiidate
+	if err := s.validate.Struct(req); err != nil {
 		s.core.Logger.Error(err)
 		return nil, errs.ErrValidationFailed(err)
 	}
@@ -127,21 +129,13 @@ func (s *userService) Create(req *userModel.UserRequest) (*userModel.UserRespons
 
 func (s *userService) Update(req *userModel.UserRequest) (*userModel.UserResponse, error) {
 	// validate
-	err := validation.ValidateStruct(req,
-		validation.Field(&req.Id, validation.Required),
-	)
-	if err != nil {
-		s.core.Logger.Error(err)
-		return nil, errs.ErrValidationFailed(err)
-	}
-
-	oid, err := primitive.ObjectIDFromHex(req.Id)
-	if err != nil {
+	if err := s.validate.StructPartial(req, "Id"); err != nil {
 		s.core.Logger.Error(err)
 		return nil, errs.ErrValidationFailed(err)
 	}
 
 	// build update user
+	oid, _ := primitive.ObjectIDFromHex(req.Id)
 	user := &userModel.User{
 		Id:          oid,
 		UpdatedDate: time.Now(),
@@ -157,7 +151,7 @@ func (s *userService) Update(req *userModel.UserRequest) (*userModel.UserRespons
 		user.Tel = req.Tel
 	}
 	if req.BirthDate != "" {
-		birthDate := utils.StringToDateFormat(req.BirthDate, utils.FORMAT_DATETIME)
+		birthDate := utils.StringToDateFormat(req.BirthDate, utils.FORMAT_DATE)
 		user.BirthDate = &birthDate
 	}
 
@@ -176,13 +170,13 @@ func (s *userService) Update(req *userModel.UserRequest) (*userModel.UserRespons
 
 func (s *userService) Closing(id string) (*userModel.UserResponse, error) {
 	// validate
-	oid, err := primitive.ObjectIDFromHex(id)
-	if err != nil {
+	if err := s.validate.Var(id, "mongodb"); err != nil {
 		s.core.Logger.Error(err)
 		return nil, errs.ErrValidationFailed(err)
 	}
 
 	// build closing user
+	oid, _ := primitive.ObjectIDFromHex(id)
 	user := &userModel.User{
 		Id:          oid,
 		UpdatedDate: time.Now(),
@@ -203,14 +197,13 @@ func (s *userService) Closing(id string) (*userModel.UserResponse, error) {
 }
 
 func (s *userService) Login(request *userModel.UserLoginRequest) (*userModel.UserLoginResponse, error) {
-	err := validation.ValidateStruct(request,
-		validation.Field(&request.Email, validation.Required),
-	)
-	if err != nil {
+	// validate
+	if err := s.validate.Struct(request); err != nil {
 		s.core.Logger.Error(err)
 		return nil, errs.ErrValidationFailed(err)
 	}
 
+	// get user by email
 	user, err := s.repo.UserRepository.GetByEmail(request.Email)
 	if err != nil {
 		s.core.Logger.Error(err)
@@ -237,10 +230,8 @@ func (s *userService) Login(request *userModel.UserLoginRequest) (*userModel.Use
 		return nil, errs.ErrBadRequest(err)
 	}
 
-	response := &userModel.UserLoginResponse{
+	return &userModel.UserLoginResponse{
 		Email: user.Email,
 		Token: t,
-	}
-
-	return response, nil
+	}, nil
 }

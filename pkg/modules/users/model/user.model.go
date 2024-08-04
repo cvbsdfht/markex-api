@@ -20,10 +20,10 @@ type User struct {
 }
 
 type UserRequest struct {
-	Id        string `json:"id"`
-	Firstname string `json:"firstname"`
-	Lastname  string `json:"lastname"`
-	Email     string `json:"email"`
+	Id        string `json:"id" validate:"mongodb"`
+	Firstname string `json:"firstname" validate:"name"`
+	Lastname  string `json:"lastname" validate:"name"`
+	Email     string `json:"email" validate:"required,email"`
 	Tel       string `json:"tel"`
 	BirthDate string `json:"birthDate"`
 }
@@ -39,7 +39,7 @@ type UserListResponse struct {
 }
 
 type UserLoginRequest struct {
-	Email string
+	Email string `json:"email" validate:"required,email"`
 }
 
 type UserLoginResponse struct {
