@@ -5,7 +5,7 @@ import (
 	"log"
 
 	"github.com/goccy/go-json"
-	jwtware "github.com/gofiber/contrib/jwt"
+	_ "github.com/gofiber/contrib/jwt"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/helmet/v2"
 	"github.com/markex-api/cmd/api/routes"
@@ -75,10 +75,10 @@ func main() {
 	routes.NewHealthRouteHandler(app).Init()
 	routes.NewAuthenticationRouteHandler(app, coreRegistry, userService).Init()
 
-	// JWT Middleware
-	app.Use(jwtware.New(jwtware.Config{
-		SigningKey: jwtware.SigningKey{Key: []byte("secret")},
-	}))
+	// // JWT Middleware
+	// app.Use(jwt.New(jwtware.Config{
+	// 	SigningKey: jwtware.SigningKey{Key: []byte("secret")},
+	// }))
 
 	routes.NewUserRouteHandler(app, coreRegistry, userService).Init()
 

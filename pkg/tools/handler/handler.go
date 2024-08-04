@@ -34,10 +34,9 @@ func HandlerWithBody(c *fiber.Ctx, request interface{}, handlerFn HandlerFn) err
 func responseError(c *fiber.Ctx, err error) error {
 	appError, ok := err.(errs.AppError)
 
-	appErrorResponse := &errs.ApiErrorResponse{}
 	if ok {
-		appErrorResponse = &errs.ApiErrorResponse{
-			Status:  false,
+		appErrorResponse := &errs.ApiErrorResponse{
+			Status:  appError.Status.Code,
 			Code:    appError.Code,
 			Message: appError.Message,
 			Time:    time.Now(),
@@ -45,7 +44,7 @@ func responseError(c *fiber.Ctx, err error) error {
 			Detail:  appError.Err.Error(),
 		}
 
-		return c.Status(appError.Code).JSON(appErrorResponse)
+		return c.Status(appErrorResponse.Status).JSON(appErrorResponse)
 	}
 
 	return c.Status(fiber.StatusBadRequest).JSON(err)

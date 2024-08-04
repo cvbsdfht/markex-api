@@ -4,24 +4,23 @@ import (
 	"errors"
 	"time"
 
-	validation "github.com/go-ozzo/ozzo-validation"
+	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/golang-jwt/jwt"
 	"github.com/markex-api/pkg/core"
 	"github.com/markex-api/pkg/modules"
 	userModel "github.com/markex-api/pkg/modules/users/model"
 	"github.com/markex-api/pkg/tools/errs"
-	"github.com/markex-api/pkg/tools/utils"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
 // Port
 type IUserService interface {
-	GetUserList() (*[]userModel.User, error)
-	GetUserById(id string) (*userModel.User, error)
-	Create(user *userModel.User) (*userModel.User, error)
-	Update(user *userModel.User) (*userModel.User, error)
-	Delete(id string) (*userModel.User, error)
+	GetUserList() (*userModel.UserListResponse, error)
+	GetUserById(id string) (*userModel.UserResponse, error)
+	Create(user *userModel.User) (*userModel.UserResponse, error)
+	Update(user *userModel.User) (*userModel.UserResponse, error)
+	Delete(id string) (*userModel.UserResponse, error)
 	Login(request *userModel.UserLoginRequest) (*userModel.UserLoginResponse, error)
 }
 
@@ -35,37 +34,47 @@ func NewUserService(c *core.CoreRegistry, r *modules.RepositoryRegistry) IUserSe
 	return &userService{core: c, repo: r}
 }
 
-func (s *userService) GetUserList() (*[]userModel.User, error) {
+func (s *userService) GetUserList() (*userModel.UserListResponse, error) {
 	users, err := s.repo.UserRepository.GetAll()
 	if err != nil {
 		s.core.Logger.Error(err)
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, errs.ErrNoContent(err)
+			return nil, errs.ErrNotFound(err)
 		}
 
-		return nil, errs.ErrUnexpected(err)
+		return nil, errs.ErrBadRequest(err)
 	}
 
-	return users, nil
+	return &userModel.UserListResponse{
+		Status: true,
+		Data:   users,
+	}, nil
 }
 
-func (s *userService) GetUserById(id string) (*userModel.User, error) {
-	Oid := utils.ToObjectID(id)
+func (s *userService) GetUserById(id string) (*userModel.UserResponse, error) {
+	Oid, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		s.core.Logger.Error(err)
+		return nil, errs.ErrValidationFailed(err)
+	}
 
 	user, err := s.repo.UserRepository.GetById(Oid)
 	if err != nil {
 		s.core.Logger.Error(err)
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, errs.ErrNoContent(err)
+			return nil, errs.ErrNotFound(err)
 		}
 
-		return nil, errs.ErrUnexpected(err)
+		return nil, errs.ErrBadRequest(err)
 	}
 
-	return user, nil
+	return &userModel.UserResponse{
+		Status: true,
+		Data:   user,
+	}, nil
 }
 
-func (s *userService) Create(user *userModel.User) (*userModel.User, error) {
+func (s *userService) Create(user *userModel.User) (*userModel.UserResponse, error) {
 	err := validation.ValidateStruct(user,
 		validation.Field(&user.Email, validation.Required),
 	)
@@ -78,7 +87,7 @@ func (s *userService) Create(user *userModel.User) (*userModel.User, error) {
 	request := &userModel.User{
 		Id:          primitive.NewObjectID(),
 		Email:       user.Email,
-		Status:      "registered",
+		Status:      userModel.USER_STATUS_REGISTERED,
 		CreatedDate: now,
 		UpdatedDate: now,
 	}
@@ -102,10 +111,13 @@ func (s *userService) Create(user *userModel.User) (*userModel.User, error) {
 		return nil, errs.ErrNotAcceptable(err)
 	}
 
-	return result, nil
+	return &userModel.UserResponse{
+		Status: true,
+		Data:   result,
+	}, nil
 }
 
-func (s *userService) Update(user *userModel.User) (*userModel.User, error) {
+func (s *userService) Update(user *userModel.User) (*userModel.UserResponse, error) {
 	err := validation.ValidateStruct(user,
 		validation.Field(&user.Id, validation.Required),
 	)
@@ -139,16 +151,23 @@ func (s *userService) Update(user *userModel.User) (*userModel.User, error) {
 		return nil, errs.ErrNotAcceptable(err)
 	}
 
-	return result, nil
+	return &userModel.UserResponse{
+		Status: true,
+		Data:   result,
+	}, nil
 }
 
-func (s *userService) Delete(id string) (*userModel.User, error) {
-	Oid := utils.ToObjectID(id)
-	now := time.Now()
+func (s *userService) Delete(id string) (*userModel.UserResponse, error) {
+	Oid, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		s.core.Logger.Error(err)
+		return nil, errs.ErrValidationFailed(err)
+	}
+
 	request := &userModel.User{
 		Id:          Oid,
-		UpdatedDate: now,
-		Status:      "closing",
+		UpdatedDate: time.Now(),
+		Status:      userModel.USER_STATUS_CLOSING,
 	}
 
 	result, err := s.repo.UserRepository.Upsert(request)
@@ -157,7 +176,10 @@ func (s *userService) Delete(id string) (*userModel.User, error) {
 		return nil, errs.ErrNotAcceptable(err)
 	}
 
-	return result, nil
+	return &userModel.UserResponse{
+		Status: true,
+		Data:   result,
+	}, nil
 }
 
 func (s *userService) Login(request *userModel.UserLoginRequest) (*userModel.UserLoginResponse, error) {
@@ -173,10 +195,10 @@ func (s *userService) Login(request *userModel.UserLoginRequest) (*userModel.Use
 	if err != nil {
 		s.core.Logger.Error(err)
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, errs.ErrNoContent(err)
+			return nil, errs.ErrNotFound(err)
 		}
 
-		return nil, errs.ErrUnexpected(err)
+		return nil, errs.ErrBadRequest(err)
 	}
 
 	// Create the Claims
@@ -192,7 +214,7 @@ func (s *userService) Login(request *userModel.UserLoginRequest) (*userModel.Use
 	// Generate encoded token and send it as response.
 	t, err := token.SignedString([]byte("secret"))
 	if err != nil {
-		return nil, errs.ErrUnexpected(err)
+		return nil, errs.ErrBadRequest(err)
 	}
 
 	response := &userModel.UserLoginResponse{

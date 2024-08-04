@@ -3,7 +3,7 @@ package errs
 import "time"
 
 type ApiErrorResponse struct {
-	Status  bool      `json:"status"`
+	Status  int       `json:"status"`
 	Code    int       `json:"code"`
 	Message string    `json:"message"`
 	Time    time.Time `json:"time"`

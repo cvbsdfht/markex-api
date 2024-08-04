@@ -3,6 +3,7 @@ package errs
 import "github.com/gofiber/fiber/v2"
 
 type AppError struct {
+	Status  *fiber.Error
 	Code    int
 	Message string
 	Err     error
@@ -12,34 +13,42 @@ func (e AppError) Error() string {
 	return e.Message
 }
 
-func ErrNoContent(err error) error {
+func ErrNotFound(err error) error {
 	return AppError{
-		Code:    fiber.StatusNoContent,
-		Message: "no-content",
+		Status:  fiber.ErrNotFound,
+		Code:    fiber.StatusNotFound,
+		Message: "content not found",
 		Err:     err,
 	}
 }
 
-func ErrUnexpected(err error) error {
+func ErrBadRequest(err error) error {
 	return AppError{
-		Code:    fiber.StatusInternalServerError,
-		Message: "unexpected",
+		Status:  fiber.ErrBadRequest,
+		Code:    fiber.StatusBadRequest,
+		Message: "bad request",
 		Err:     err,
 	}
 }
 
 func ErrNotAcceptable(err error) error {
 	return AppError{
+		Status:  fiber.ErrNotAcceptable,
 		Code:    fiber.StatusNotAcceptable,
-		Message: "not-acceptable",
+		Message: "not acceptable",
 		Err:     err,
 	}
 }
 
 func ErrValidationFailed(err error) error {
 	return AppError{
-		Code:    fiber.StatusBadRequest,
-		Message: "validation-failed",
+		Status:  fiber.ErrBadRequest,
+		Code:    CodeValidationFailed,
+		Message: "validation failed",
 		Err:     err,
 	}
 }
+
+const (
+	CodeValidationFailed = 1401
+)

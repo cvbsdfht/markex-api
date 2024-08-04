@@ -19,7 +19,21 @@ type User struct {
 	DeletedDate *time.Time         `json:"deletedDate,omitempty" bson:"deletedDate,omitempty"`
 }
 
-var USER_STATUS = []string{"registered", "closing", "closed"}
+const (
+	USER_STATUS_REGISTERED = "registered"
+	USER_STATUS_CLOSING    = "closing"
+	USER_STATUS_CLOSED     = "closed"
+)
+
+type UserResponse struct {
+	Status bool  `json:"status"`
+	Data   *User `json:"data"`
+}
+
+type UserListResponse struct {
+	Status bool    `json:"status"`
+	Data   *[]User `json:"data"`
+}
 
 type UserLoginRequest struct {
 	Email string

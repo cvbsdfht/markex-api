@@ -27,7 +27,7 @@ func (h *userRouteHandler) Init() {
 
 	api.Post("/register", h.registerUser)
 	api.Post("/update", h.updateUser)
-	api.Put("/delete/:id", h.deleteUser)
+	api.Delete("/:id", h.deleteUser)
 }
 
 func (h *userRouteHandler) validation(c *fiber.Ctx) error {

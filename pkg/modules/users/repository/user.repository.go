@@ -30,10 +30,8 @@ func NewUserRepository(database *mongo.Database) IUserRepository {
 }
 
 func (r *userRepository) GetAll() (*[]userModel.User, error) {
-	users := &[]userModel.User{}
-
 	filter := bson.M{
-		"status": "registered",
+		"status": userModel.USER_STATUS_REGISTERED,
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -43,6 +41,7 @@ func (r *userRepository) GetAll() (*[]userModel.User, error) {
 		return nil, err
 	}
 
+	users := &[]userModel.User{}
 	if err = filterCursor.All(ctx, users); err != nil {
 		return nil, err
 	}
@@ -51,14 +50,13 @@ func (r *userRepository) GetAll() (*[]userModel.User, error) {
 }
 
 func (r *userRepository) GetById(id primitive.ObjectID) (*userModel.User, error) {
-	user := &userModel.User{}
-
 	filter := bson.M{
 		"_id": id,
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
+	user := &userModel.User{}
 	err := r.UserCollection.FindOne(ctx, filter).Decode(user)
 	if err != nil {
 		return nil, err
@@ -68,14 +66,13 @@ func (r *userRepository) GetById(id primitive.ObjectID) (*userModel.User, error)
 }
 
 func (r *userRepository) GetByEmail(email string) (*userModel.User, error) {
-	user := &userModel.User{}
-
 	filter := bson.M{
 		"email": email,
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
+	user := &userModel.User{}
 	err := r.UserCollection.FindOne(ctx, filter).Decode(user)
 	if err != nil {
 		return nil, err
@@ -87,7 +84,7 @@ func (r *userRepository) GetByEmail(email string) (*userModel.User, error) {
 func (r *userRepository) Upsert(user *userModel.User) (*userModel.User, error) {
 	filter := bson.M{
 		"_id":    user.Id,
-		"status": "registered",
+		"status": userModel.USER_STATUS_REGISTERED,
 	}
 	update := bson.D{
 		{Key: "$set", Value: user},
